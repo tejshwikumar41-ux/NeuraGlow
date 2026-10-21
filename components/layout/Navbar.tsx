@@ -7,6 +7,7 @@ import { NeuraGlowLogo } from '@/components/ui/ClayIcons';
 import { ClayButton } from '@/components/ui/ClayButton';
 import { ThemeToggle } from './ThemeToggle';
 import { FocusModeButton } from '../bonus/FocusModeButton';
+import AuthButton from '@/components/ui/AuthButton';
 
 export const Navbar: React.FC<{
   onOpenAuthModal: (mode: 'login' | 'signup') => void;
@@ -148,24 +149,9 @@ export const Navbar: React.FC<{
           <FocusModeButton onToggleFocus={onToggleFocus} isFocus={isFocus} />
           <ThemeToggle />
 
-          {/* Auth modal triggers */}
-          <div className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-2 border-l-[2px] border-[var(--border-clay)]">
-            <ClayButton
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenAuthModal('login')}
-              className="hidden sm:inline-flex text-xs"
-            >
-              Log In
-            </ClayButton>
-            <ClayButton
-              variant="primary"
-              size="sm"
-              onClick={() => onOpenAuthModal('signup')}
-              className="text-xs"
-            >
-              Sign Up
-            </ClayButton>
+          {/* Supabase Authentication Button */}
+          <div className="flex items-center pl-1 sm:pl-2 border-l-[2px] border-[var(--border-clay)]">
+            <AuthButton />
           </div>
         </div>
       </div>
