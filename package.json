@@ -11,6 +11,8 @@
     "@gsap/react": "^2.1.2",
     "@phosphor-icons/react": "^2.1.10",
     "@studio-freight/react-lenis": "^0.0.47",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.118.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/katex": "^0.16.8",
     "canvas-confetti": "^1.9.4",
