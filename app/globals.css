@@ -1,0 +1,293 @@
+@import url("https://fonts.cdnfonts.com/css/sf-pro-display");
+@import "katex/dist/katex.min.css";
+@import "tailwindcss";
+
+/* ════════════════════════════════════════════════════════════════
+   🎨 NEURAGLOW CLAYMORPHISM + SOFT BRUTALISM THEME VARIABLES
+   ════════════════════════════════════════════════════════════════ */
+
+:root,
+[data-theme="cream"] {
+  /* THEME 1: Cream Clay (Default - Warm & Inviting) */
+  --bg-clay: #F5F1EB;
+  --surface-clay: #FFFFFF;
+  --primary-clay: #FF6B35;
+  --secondary-clay: #2D4A3E;
+  --accent-clay: #F4D35E;
+  --text-clay: #1A1A1A;
+  --muted-clay: #6B6B6B;
+  --border-clay: #1A1A1A;
+  --shadow-clay: 6px 6px 0px #1A1A1A;
+  --shadow-clay-hover: 8px 8px 0px #1A1A1A;
+  --shadow-clay-pressed: 2px 2px 0px #1A1A1A;
+  --shadow-clay-soft: 0 10px 30px rgba(26, 26, 26, 0.08);
+  --color-scheme: light;
+}
+
+[data-theme="midnight"] {
+  /* THEME 2: Midnight Clay (Dark Mode - Sophisticated) */
+  --bg-clay: #1C1B1F;
+  --surface-clay: #2A2830;
+  --primary-clay: #FFB4A2;
+  --secondary-clay: #B5EAD7;
+  --accent-clay: #FFD6A5;
+  --text-clay: #F5F1EB;
+  --muted-clay: #A8A5B0;
+  --border-clay: #F5F1EB;
+  --shadow-clay: 6px 6px 0px #000000;
+  --shadow-clay-hover: 8px 8px 0px #000000;
+  --shadow-clay-pressed: 2px 2px 0px #000000;
+  --shadow-clay-soft: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --color-scheme: dark;
+}
+
+[data-theme="mono"] {
+  /* THEME 3: Mono Precision (Minimalist - Focus Mode) */
+  --bg-clay: #FAFAF8;
+  --surface-clay: #FFFFFF;
+  --primary-clay: #000000;
+  --secondary-clay: #333333;
+  --accent-clay: #FF4500;
+  --text-clay: #000000;
+  --muted-clay: #666666;
+  --border-clay: #000000;
+  --shadow-clay: 4px 4px 0px #000000;
+  --shadow-clay-hover: 6px 6px 0px #000000;
+  --shadow-clay-pressed: 2px 2px 0px #000000;
+  --shadow-clay-soft: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --color-scheme: light;
+}
+
+[data-theme="botanical"] {
+  /* THEME 4: Botanical (Nature-inspired - Calm) */
+  --bg-clay: #E8F0E6;
+  --surface-clay: #FFFFFF;
+  --primary-clay: #2D5016;
+  --secondary-clay: #8B4513;
+  --accent-clay: #FF8C42;
+  --text-clay: #1A2F0D;
+  --muted-clay: #4A6038;
+  --border-clay: #2D5016;
+  --shadow-clay: 5px 5px 0px #2D5016;
+  --shadow-clay-hover: 7px 7px 0px #2D5016;
+  --shadow-clay-pressed: 2px 2px 0px #2D5016;
+  --shadow-clay-soft: 0 10px 30px rgba(45, 80, 22, 0.1);
+  --color-scheme: light;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   🧱 BASE & TYPOGRAPHY
+   ════════════════════════════════════════════════════════════════ */
+
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-clay) var(--bg-clay);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-clay);
+  color: var(--text-clay);
+  font-family: 'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  letter-spacing: -0.015em;
+  line-height: 1.6;
+  transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   🏺 CLAYMORPHISM + SOFT BRUTALISM UTILITY CLASSES
+   ════════════════════════════════════════════════════════════════ */
+
+/* Chunky 3D Clay Button */
+.clay-button {
+  background-color: var(--primary-clay);
+  color: #FFFFFF;
+  border: 2.5px solid var(--border-clay);
+  box-shadow: var(--shadow-clay);
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  text-decoration: none;
+}
+
+.clay-button:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-clay-hover);
+}
+
+.clay-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: var(--shadow-clay-pressed);
+}
+
+.clay-button-secondary {
+  background-color: var(--surface-clay);
+  color: var(--text-clay);
+  border: 2.5px solid var(--border-clay);
+  box-shadow: var(--shadow-clay);
+  border-radius: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.clay-button-secondary:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-clay-hover);
+}
+
+.clay-button-secondary:active {
+  transform: translate(2px, 2px);
+  box-shadow: var(--shadow-clay-pressed);
+}
+
+.clay-button-accent {
+  background-color: var(--accent-clay);
+  color: #1A1A1A;
+  border: 2.5px solid var(--border-clay);
+  box-shadow: var(--shadow-clay);
+  border-radius: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.clay-button-accent:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-clay-hover);
+}
+
+.clay-button-accent:active {
+  transform: translate(2px, 2px);
+  box-shadow: var(--shadow-clay-pressed);
+}
+
+/* Pillowy Clay Card with Dual Depth */
+.clay-card {
+  background-color: var(--surface-clay);
+  color: var(--text-clay);
+  border: 2.5px solid var(--border-clay);
+  box-shadow: var(--shadow-clay);
+  border-radius: 28px;
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.clay-card-tilt:hover {
+  transform: translateY(-4px) rotate(-0.5deg);
+  box-shadow: var(--shadow-clay-hover);
+}
+
+/* Chunky Input */
+.clay-input {
+  height: 56px;
+  font-size: 16px;
+  font-weight: 500;
+  border: 2.5px solid var(--border-clay);
+  border-radius: 18px;
+  padding: 0 20px;
+  background-color: var(--surface-clay);
+  color: var(--text-clay);
+  outline: none;
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 150ms ease;
+  width: 100%;
+}
+
+.clay-input:focus {
+  border-color: var(--primary-clay);
+  box-shadow: 0 0 0 3px var(--accent-clay), inset 2px 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Chunky Badges / Pills */
+.clay-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 2px solid var(--border-clay);
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 2px 2px 0px var(--border-clay);
+}
+
+/* Marquee Animation */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: 200%;
+  animation: marquee 25s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Custom Brutalist Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-clay);
+  border-left: 2px solid var(--border-clay);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-clay);
+  border: 2px solid var(--border-clay);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-clay);
+}
+
+/* Selection Color */
+::selection {
+  background-color: var(--primary-clay);
+  color: #FFFFFF;
+}
