@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ClayBadge } from '@/components/ui/ClayBadge';
 import { ThemeToggle } from './ThemeToggle';
+import { createClient } from '@/lib/supabase/client';
 
 export const Sidebar: React.FC<{
   isCollapsed?: boolean;
@@ -12,6 +13,17 @@ export const Sidebar: React.FC<{
   className?: string;
 }> = ({ isCollapsed = false, onToggleCollapse, className = '' }) => {
   const pathname = usePathname();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) setUser(data.user);
+    }).catch(() => {});
+  }, []);
+
+  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || (user?.email ? user.email.split('@')[0] : 'My Account');
+  const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : 'U';
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: '🏠' },
@@ -35,16 +47,24 @@ export const Sidebar: React.FC<{
         {/* User Profile Card */}
         <div className="p-3.5 rounded-[22px] border-[2.5px] border-[var(--border-clay)] bg-[var(--bg-clay)] shadow-[3px_3px_0px_var(--border-clay)] flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 rounded-full border-[2.5px] border-[var(--border-clay)] bg-[var(--accent-clay)] text-[#1A1A1A] flex items-center justify-center font-black text-base shadow-[2px_2px_0px_var(--border-clay)] shrink-0">
-              TK
-            </div>
+            {user?.user_metadata?.avatar_url ? (
+              <img
+                src={user.user_metadata.avatar_url}
+                alt="Avatar"
+                className="w-11 h-11 rounded-full border-[2.5px] border-[var(--border-clay)] object-cover shadow-[2px_2px_0px_var(--border-clay)] shrink-0"
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-full border-[2.5px] border-[var(--border-clay)] bg-[var(--accent-clay)] text-[#1A1A1A] flex items-center justify-center font-black text-base shadow-[2px_2px_0px_var(--border-clay)] shrink-0">
+                {avatarLetter}
+              </div>
+            )}
             {!isCollapsed && (
               <div className="truncate">
                 <p className="text-sm font-black text-[var(--text-clay)] truncate leading-tight">
-                  Tejshwi Kumar
+                  {displayName}
                 </p>
                 <p className="text-[10px] text-[var(--muted-clay)] font-bold truncate">
-                  Curious Explorer
+                  {user ? 'Active Learner' : 'Guest'}
                 </p>
               </div>
             )}

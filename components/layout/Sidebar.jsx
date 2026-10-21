@@ -126,12 +126,12 @@ export function Sidebar({ className, isCollapsed = false }) {
 
             <div className="flex items-center justify-between pt-2 border-t border-gray-200/60 dark:border-gray-800/60">
               <Link href="/settings" className="flex items-center gap-2.5 truncate group">
-                <Avatar fallback="TK" className="shrink-0" />
+                <Avatar fallback="U" className="shrink-0" />
                 <div className="truncate max-w-[100px]">
                   <p className="text-xs font-bold text-gray-900 dark:text-white truncate group-hover:text-indigo-600">
-                    Tejshwi Kumar
+                    My Account
                   </p>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">Pro Learner</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">Learner</p>
                 </div>
               </Link>
 
@@ -146,8 +146,8 @@ export function Sidebar({ className, isCollapsed = false }) {
           </>
         ) : (
           <div className="flex flex-col items-center gap-3 py-1">
-            <Link href="/settings" title="Tejshwi Kumar (Settings)">
-              <Avatar fallback="TK" className="w-8 h-8" />
+            <Link href="/settings" title="Account Settings">
+              <Avatar fallback="U" className="w-8 h-8" />
             </Link>
             <button
               onClick={() => router.push("/login")}

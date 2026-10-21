@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ClayCard } from '@/components/ui/ClayCard';
 import { ClayButton } from '@/components/ui/ClayButton';
 import { ClayInput } from '@/components/ui/ClayInput';
@@ -8,16 +8,35 @@ import { ClaySwitch } from '@/components/ui/ClaySwitch';
 import { ClaySlider } from '@/components/ui/ClaySlider';
 import { ClayBadge } from '@/components/ui/ClayBadge';
 import { useClayTheme, THEMES, ThemeName } from '@/components/layout/ThemeContext';
+import { createClient } from '@/lib/supabase/client';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useClayTheme();
   const [activeTab, setActiveTab] = useState<'profile' | 'appearance' | 'learning' | 'notifications' | 'privacy'>('appearance');
 
-  // Form states
-  const [name, setName] = useState('Tejshwi Kumar');
-  const [email, setEmail] = useState('tejshwi@neuraglow.io');
-  const [bio, setBio] = useState('Exploring quantum non-locality and modern web architectures.');
+  // Dynamic user profile state (connected to Supabase Auth)
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [bio, setBio] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [fontSize, setFontSize] = useState(18);
+
+  useEffect(() => {
+    const supabase = createClient();
+    async function loadUser() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setName(user.user_metadata?.full_name || user.user_metadata?.name || '');
+          setEmail(user.email || '');
+          setAvatarUrl(user.user_metadata?.avatar_url || '');
+        }
+      } catch (err) {
+        // Fallback gracefully if not logged in
+      }
+    }
+    loadUser();
+  }, []);
 
   // Switches
   const [dailyReminder, setDailyReminder] = useState(true);
@@ -146,9 +165,17 @@ export default function SettingsPage() {
       {activeTab === 'profile' && (
         <ClayCard padding="lg" className="space-y-6 shadow-[6px_6px_0px_var(--border-clay)] max-w-2xl">
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-full border-[3px] border-[var(--border-clay)] bg-[var(--accent-clay)] flex items-center justify-center font-black text-2xl shadow-[3px_3px_0px_var(--border-clay)]">
-              TK
-            </div>
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Avatar"
+                className="w-20 h-20 rounded-full border-[3px] border-[var(--border-clay)] object-cover shadow-[3px_3px_0px_var(--border-clay)]"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-full border-[3px] border-[var(--border-clay)] bg-[var(--accent-clay)] flex items-center justify-center font-black text-2xl shadow-[3px_3px_0px_var(--border-clay)]">
+                {name ? name.charAt(0).toUpperCase() : 'U'}
+              </div>
+            )}
             <div>
               <ClayButton size="sm" variant="secondary" onClick={() => alert('Avatar upload modal opened')}>
                 Upload New Avatar
@@ -157,13 +184,14 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <ClayInput label="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
-          <ClayInput label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <ClayInput label="Full Name" placeholder="Enter your full name" value={name} onChange={(e) => setName(e.target.value)} />
+          <ClayInput label="Email Address" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
 
           <div className="space-y-1.5">
             <label className="block text-xs font-bold uppercase text-[var(--text-clay)]">Bio & Interests</label>
             <textarea
               value={bio}
+              placeholder="Tell us about yourself and your learning goals..."
               onChange={(e) => setBio(e.target.value)}
               className="w-full h-24 p-3.5 rounded-[18px] border-[2.5px] border-[var(--border-clay)] bg-[var(--surface-clay)] text-[var(--text-clay)] font-medium text-sm outline-none focus:ring-3 focus:ring-[var(--accent-clay)] resize-none"
             />

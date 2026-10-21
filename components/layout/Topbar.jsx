@@ -153,12 +153,12 @@ export function Topbar({ onMenuClick }) {
             <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in-50 zoom-in-95 duration-150">
               {/* User Header */}
               <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center gap-3">
-                <Avatar fallback="TK" className="w-10 h-10 ring-2 ring-indigo-600/40" />
+                <Avatar fallback="U" className="w-10 h-10 ring-2 ring-indigo-600/40" />
                 <div className="truncate">
-                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">Tejshwi Kumar</p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">tejshwi@neuraglow.io</p>
+                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">My Account</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">Manage Preferences</p>
                   <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                    Pro Learner
+                    Learner
                   </span>
                 </div>
               </div>

@@ -488,9 +488,9 @@ This architectural reality gives rise to the two golden Rules of Hooks:
 // Global Dashboard & Analytics Mock Data
 export const MOCK_DASHBOARD_DATA = {
   user: {
-    name: 'Tejshwi Kumar',
-    avatar: 'TK',
-    email: 'tejshwi@neuraglow.io',
+    name: 'Scholar',
+    avatar: 'U',
+    email: '',
     membership: 'Pro Scholar',
     streakDays: 7,
     topicsExplored: 12,
