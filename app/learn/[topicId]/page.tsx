@@ -1171,8 +1171,17 @@ export function SocraticTutorView({
             <p className="text-xs font-bold text-black/80">{sectionTitle} • Grounded in PDF</p>
           </div>
         </div>
-        <div className="bg-black text-white font-black text-xs px-3 py-1 rounded-full uppercase border border-white">
-          Multi-LLM Active
+        <div className="flex items-center gap-2">
+          <Link
+            href="/tutor"
+            className="hidden sm:inline-flex items-center gap-1 bg-white hover:bg-yellow-200 text-black font-extrabold text-xs px-3 py-1 rounded-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-all"
+            title="Launch Fullscreen Independent AI Assistant"
+          >
+            <span>🚀 Fullscreen Assistant</span>
+          </Link>
+          <div className="bg-black text-white font-black text-xs px-3 py-1 rounded-full uppercase border border-white">
+            Multi-LLM Active
+          </div>
         </div>
       </div>
 

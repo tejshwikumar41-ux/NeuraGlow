@@ -9,7 +9,8 @@ export async function POST(req: Request) {
       concepts = [],
       formulas = [],
       messages = [],
-      userInput = ''
+      userInput = '',
+      mode = 'socratic'
     } = await req.json();
 
     const groqKey = process.env.GROQ_API_KEY;
@@ -24,32 +25,46 @@ export async function POST(req: Request) {
       );
     }
 
-    // Prepare system prompt with ground-truth PDF textbook content
-    const conceptText = (concepts || []).map((c: any) => `- ${c.term}: ${c.definition}`).join('\n');
-    const formulaText = (formulas || []).map((f: any) => `- ${f.formula_plain || f.latex}`).join('\n');
+    // Build context if section or chapter is supplied
+    let contextBlock = '';
+    const hasSectionContext = !!(sectionContent || sectionTitle || chapterTitle);
+    if (hasSectionContext) {
+      const conceptText = (concepts || []).map((c: any) => `- ${c.term}: ${c.definition}`).join('\n');
+      const formulaText = (formulas || []).map((f: any) => `- ${f.formula_plain || f.latex}`).join('\n');
+      contextBlock = `
+ACTIVE STUDY CONTEXT:
+- Chapter: ${chapterTitle || 'Physics'}
+- Section: ${sectionTitle || 'General'}
+${sectionContent ? `TEXTBOOK CONTENT:\n"""\n${sectionContent.slice(0, 8000)}\n"""\n` : ''}
+${conceptText ? `KEY CONCEPTS:\n${conceptText}\n` : ''}
+${formulaText ? `KEY FORMULAS:\n${formulaText}\n` : ''}
+`;
+    }
 
-    const systemPrompt = `You are NeuraGlow's Socratic Physics AI Tutor.
-You are having an interactive 2-sided dialogue with a student studying ${chapterTitle} - ${sectionTitle}.
+    const modeGuides: Record<string, string> = {
+      socratic: "PEDAGOGICAL GOAL (Socratic Inquiry): Guide the student's reasoning through insightful questions, uncovering hidden assumptions and leading them to deduce first principles themselves.",
+      explain: "PEDAGOGICAL GOAL (Deep Intuition): Provide a crystal-clear, beautifully intuitive explanation using everyday real-world analogies, physical meaning, and first principles.",
+      solver: "PEDAGOGICAL GOAL (Step-by-Step Solver): Break the problem into explicit stages: knowns/unknowns, fundamental physical laws, algebraic derivation with LaTeX math, and units.",
+      challenge: "PEDAGOGICAL GOAL (Conceptual Challenge): Test the student with a thought experiment, paradox, or counter-intuitive edge case to push their mastery."
+    };
 
-TEXTBOOK PDF CONTENT FOR THIS SECTION:
-"""
-${(sectionContent || '').slice(0, 8000)}
-"""
+    const activeModeGuide = modeGuides[mode] || modeGuides.socratic;
 
-KEY CONCEPTS IN THIS SECTION:
-${conceptText || 'None extracted.'}
+    const systemPrompt = `You are NeuraGlow's Independent Socratic AI Assistant — an omniscient, design-forward, highly engaging AI tutor for Physics, Science, Mathematics, and STEM learning.
 
-KEY FORMULAS IN THIS SECTION:
-${formulaText || 'None extracted.'}
+${hasSectionContext ? contextBlock : 'MODE: Completely Independent AI Assistant. You have full mastery of all fields of Physics (Mechanics, Electromagnetism, Optics, Thermodynamics, Modern Physics, Quantum Mechanics, Relativity), Mathematics, and STEM.'}
 
-STRICT BEHAVIOR & SOCRATIC RULES:
-1. OFF-TOPIC GUARD: If the user asks something off-topic (e.g. politics, "who is modi", sports, movies, general trivia), POLITELY REFUSE in 1 short sentence and re-direct them to a physics question about ${sectionTitle}.
-2. GROUNDING: Ground all physics explanations and evaluations strictly on the textbook content provided above.
-3. ANSWER EVALUATION:
-   - If the student's answer is WRONG or NONSENSE: Explicitly state that it is incorrect without false praise. Briefly explain why using the textbook text, give a helpful hint, and ask them to try again.
-   - If the student's answer is CORRECT: Praise them briefly, explain the physical principle in 1 concise sentence, and ask a deeper Socratic question (elevating conceptual depth).
-4. TWO-WAY DIALOGUE: If the student asks a valid question about physics or ${sectionTitle}, answer clearly with LaTeX math ($F = ma$ or $$...$$), then ask a follow-up Socratic question to test their understanding.
-5. FORMATTING: Use clean Markdown with Bold key terms and KaTeX LaTeX for formulas. Keep replies concise (80-150 words).`;
+${activeModeGuide}
+
+CORE BEHAVIOR & SOCRATIC RULES:
+1. FULL INDEPENDENCE & WARMTH: You are an autonomous AI tutor. You are not locked into pre-scripted phrases or narrow confines. Converse naturally, intelligently, and empathetically with the student on any question they ask.
+2. CONSTRUCTIVE ANSWER EVALUATION:
+   - When a student attempts an answer, evaluate their physical reasoning with honesty and encouragement.
+   - If incorrect: Identify the exact conceptual gap, explain why using physical intuition, and give a hint to try again.
+   - If correct: Validate their deduction, highlight why the law behaves this way, and elevate to a deeper question.
+3. SOCRATIC CLOSING QUESTION: Unless the student explicitly requested a one-off final calculation, always conclude your message with a compelling, concept-deepening Socratic question or thought experiment.
+4. MATHEMATICAL RIGOR: Format all mathematical formulas and equations using KaTeX LaTeX (inline: $F = ma$, $\\vec{p} = m\\vec{v}$, block: $$E = mc^2$$).
+5. FORMATTING & STYLE: Clean GitHub Markdown with bold key terms, concise paragraphs, and bullet points. Keep responses punchy and intellectually stimulating (100-220 words).`;
 
     let aiReply = '';
 

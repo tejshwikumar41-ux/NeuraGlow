@@ -27,6 +27,7 @@ export const Sidebar: React.FC<{
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: '🏠' },
+    { name: 'Socratic AI', href: '/tutor', icon: '🤖' },
     { name: 'Search Topics', href: '/search', icon: '🔍' },
     { name: 'My Library', href: '/library', icon: '📚' },
     { name: 'Progress & Stats', href: '/progress', icon: '📊' },

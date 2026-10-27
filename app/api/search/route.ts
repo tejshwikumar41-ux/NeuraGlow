@@ -8,7 +8,14 @@ const supabase = createClient(
 
 async function searchChapters(query: string) {
   const cleanQuery = query.trim();
-  if (!cleanQuery) return [];
+  if (!cleanQuery) {
+    const { data: allChapters } = await supabase
+      .from('chapters')
+      .select('*')
+      .order('id', { ascending: true })
+      .limit(20);
+    return allChapters || [];
+  }
 
   // 1. Direct match on chapter title
   const { data: chapters } = await supabase

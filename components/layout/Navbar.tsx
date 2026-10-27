@@ -134,6 +134,10 @@ export const Navbar: React.FC<{
             <Link href="/dashboard" className="hover:text-[var(--primary-clay)] transition-colors">
               Dashboard
             </Link>
+            <Link href="/tutor" className="hover:text-[var(--primary-clay)] transition-colors flex items-center gap-1">
+              <span>🤖</span>
+              <span>Socratic AI</span>
+            </Link>
             <Link href="/search" className="hover:text-[var(--primary-clay)] transition-colors">
               Explore
             </Link>
