@@ -9,8 +9,10 @@ if sys.stdout.encoding.lower() != 'utf-8':
         pass
 
 def get_db_uri():
-    if os.path.exists(".env.local"):
-        with open(".env.local", "r", encoding="utf-8") as f:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    env_file = os.path.join(script_dir, ".env.local")
+    if os.path.exists(env_file):
+        with open(env_file, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line.startswith("SUPABASE_DB_URI="):
@@ -18,8 +20,17 @@ def get_db_uri():
     return os.getenv("SUPABASE_DB_URI", "postgresql://postgres:Pflg782012006@db.iulnjxewpbwlazspvkmb.supabase.co:5432/postgres")
 
 SCHEMA_SQL = """
--- Main chapter table
-CREATE TABLE IF NOT EXISTS chapters (
+DROP TABLE IF EXISTS chapters CASCADE;
+DROP TABLE IF EXISTS chapter_sections CASCADE;
+DROP TABLE IF EXISTS concepts CASCADE;
+DROP TABLE IF EXISTS formulas CASCADE;
+DROP TABLE IF EXISTS examples CASCADE;
+DROP TABLE IF EXISTS quiz_questions CASCADE;
+DROP TABLE IF EXISTS audio_scripts CASCADE;
+DROP TABLE IF EXISTS slides CASCADE;
+DROP TABLE IF EXISTS socratic_qa CASCADE;
+
+CREATE TABLE chapters (
   id BIGSERIAL PRIMARY KEY,
   subject TEXT NOT NULL,
   chapter_number INT,
@@ -29,8 +40,7 @@ CREATE TABLE IF NOT EXISTS chapters (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Sections within a chapter
-CREATE TABLE IF NOT EXISTS chapter_sections (
+CREATE TABLE chapter_sections (
   id BIGSERIAL PRIMARY KEY,
   chapter_id BIGINT REFERENCES chapters(id) ON DELETE CASCADE,
   section_number TEXT,
@@ -42,8 +52,7 @@ CREATE TABLE IF NOT EXISTS chapter_sections (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Key concepts extracted from each section
-CREATE TABLE IF NOT EXISTS concepts (
+CREATE TABLE concepts (
   id BIGSERIAL PRIMARY KEY,
   section_id BIGINT REFERENCES chapter_sections(id) ON DELETE CASCADE,
   term TEXT NOT NULL,
@@ -52,8 +61,7 @@ CREATE TABLE IF NOT EXISTS concepts (
   importance INT DEFAULT 1
 );
 
--- Formulas extracted
-CREATE TABLE IF NOT EXISTS formulas (
+CREATE TABLE formulas (
   id BIGSERIAL PRIMARY KEY,
   section_id BIGINT REFERENCES chapter_sections(id) ON DELETE CASCADE,
   formula_latex TEXT NOT NULL,
@@ -62,8 +70,7 @@ CREATE TABLE IF NOT EXISTS formulas (
   description TEXT
 );
 
--- Worked examples
-CREATE TABLE IF NOT EXISTS examples (
+CREATE TABLE examples (
   id BIGSERIAL PRIMARY KEY,
   section_id BIGINT REFERENCES chapter_sections(id) ON DELETE CASCADE,
   example_number TEXT,
@@ -72,8 +79,7 @@ CREATE TABLE IF NOT EXISTS examples (
   final_answer TEXT
 );
 
--- Pre-generated quiz questions
-CREATE TABLE IF NOT EXISTS quiz_questions (
+CREATE TABLE quiz_questions (
   id BIGSERIAL PRIMARY KEY,
   chapter_id BIGINT REFERENCES chapters(id) ON DELETE CASCADE,
   section_id BIGINT REFERENCES chapter_sections(id) ON DELETE CASCADE,
@@ -86,16 +92,14 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
   source_text TEXT
 );
 
--- Audio lesson scripts
-CREATE TABLE IF NOT EXISTS audio_scripts (
+CREATE TABLE audio_scripts (
   id BIGSERIAL PRIMARY KEY,
   section_id BIGINT REFERENCES chapter_sections(id) ON DELETE CASCADE,
   script_text TEXT NOT NULL,
   estimated_duration_sec INT
 );
 
--- Presentation slides
-CREATE TABLE IF NOT EXISTS slides (
+CREATE TABLE slides (
   id BIGSERIAL PRIMARY KEY,
   section_id BIGINT REFERENCES chapter_sections(id) ON DELETE CASCADE,
   slide_number INT,
@@ -104,8 +108,7 @@ CREATE TABLE IF NOT EXISTS slides (
   slide_type TEXT
 );
 
--- Socratic Q&A pairs
-CREATE TABLE IF NOT EXISTS socratic_qa (
+CREATE TABLE socratic_qa (
   id BIGSERIAL PRIMARY KEY,
   section_id BIGINT REFERENCES chapter_sections(id) ON DELETE CASCADE,
   depth_level INT,
@@ -114,11 +117,10 @@ CREATE TABLE IF NOT EXISTS socratic_qa (
   follow_up_hint TEXT
 );
 
--- Full-text search indexes
 CREATE INDEX IF NOT EXISTS idx_sections_search ON chapter_sections USING GIN(to_tsvector('english', section_title || ' ' || content_markdown));
 CREATE INDEX IF NOT EXISTS idx_chapters_title ON chapters(chapter_title);
 
--- Row-Level Security: Enable Public Read Access on all tables
+-- Row-Level Security: Enable Public Read Access for Next.js anon client
 DO $$
 DECLARE
   t text;
@@ -138,9 +140,9 @@ def create_schema():
     conn = psycopg2.connect(uri)
     conn.autocommit = True
     cur = conn.cursor()
-    print("⚡ Executing schema migration...")
+    print("⚡ Executing fresh database schema migration...")
     cur.execute(SCHEMA_SQL)
-    print("✅ All 8+ tables, indexes, and RLS public policies created successfully!")
+    print("✅ Schema created: chapters, sections, concepts, formulas, examples, quiz_questions, audio_scripts, slides, socratic_qa!")
     cur.close()
     conn.close()
 
