@@ -18,6 +18,7 @@ export default function RootLayout({
     <html lang="en" data-theme="cream" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.cdnfonts.com" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
       </head>
       <body>
         <ThemeProvider>

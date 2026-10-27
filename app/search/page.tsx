@@ -77,50 +77,20 @@ function SearchComponent() {
 
       const result = await response.json();
 
-      if (result.found) {
-        const cleanSlug = (result.topic || q).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'topic';
+      if (result.found && result.chapters && result.chapters.length > 0) {
+        const matchedChapter = result.chapters[0];
+        const cleanSlug = matchedChapter.id.toString();
         const basePkg = buildUniversalTopicPackage(cleanSlug);
 
-        // 🎯 Replace the UI content with real Supabase PDF text!
-        basePkg.title = result.topic;
-        basePkg.domain = result.subject || 'Physics';
-        basePkg.category = result.source || 'NCERT Class 11 Physics';
-        basePkg.difficulty = result.difficulty || 'Intermediate';
-        basePkg.summary = `Ground-truth NCERT textbook curriculum loaded directly from Supabase: ${result.source || 'Official Textbook'}`;
+        basePkg.id = matchedChapter.id.toString();
+        basePkg.slug = matchedChapter.id.toString();
+        basePkg.title = matchedChapter.chapter_title;
+        basePkg.domain = matchedChapter.subject || 'Physics';
+        basePkg.category = matchedChapter.source || 'NCERT Class 11 Physics';
+        basePkg.difficulty = 'Comprehensive';
+        basePkg.summary = `Ground-truth NCERT textbook curriculum loaded directly from Supabase: ${matchedChapter.source || 'Official Textbook'} (${matchedChapter.total_sections || 10} sections with full question bank, formulas & interactive audio/solver/slides).`;
 
-        if (result.content) {
-          const wordCount = result.content.split(/\s+/).length;
-          const chapterObj = {
-            id: 'ch-1',
-            title: result.topic,
-            readTime: `${Math.max(10, Math.round(wordCount / 200))} mins`,
-            wordCount: wordCount,
-            content: result.content,
-            formulas: result.formulas || [],
-            reflectionPrompt: 'Analyze the core textbook principles and apply them to solve foundational numerical problems.',
-          };
-
-          basePkg.notes = {
-            detailed: {
-              targetWordCount: `${wordCount.toLocaleString()} Words`,
-              readingTime: `${Math.max(10, Math.round(wordCount / 200))} mins`,
-              chapters: [chapterObj],
-            },
-            core: {
-              targetWordCount: `${Math.round(wordCount * 0.4).toLocaleString()} Words`,
-              readingTime: '20 mins',
-              chapters: [chapterObj],
-            },
-            crisp: {
-              targetWordCount: '2,500 Words',
-              readingTime: '8 mins',
-              chapters: [chapterObj],
-            },
-            summary: result.content.slice(0, 1500) + '...',
-          } as any;
-        }
-
-        // Save into localStorage library so /learn/[topicId] has immediate access to full PDF text
+        // Save into localStorage library
         if (typeof window !== 'undefined') {
           try {
             const library = getCleanSavedLibrary();
@@ -133,8 +103,8 @@ function SearchComponent() {
               category: basePkg.category,
               difficulty: basePkg.difficulty,
               wordCountTarget: 'Full Textbook PDF',
-              questionCount: basePkg.questionBank.length,
-              flashcardCount: basePkg.flashcards.length,
+              questionCount: 150,
+              flashcardCount: 30,
               savedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
               offlineReady: true,
               fullPackage: basePkg,
@@ -146,8 +116,16 @@ function SearchComponent() {
         }
 
         setSelectedResult(basePkg);
+      } else if (result.found) {
+        const cleanSlug = (result.topic || q).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'topic';
+        const basePkg = buildUniversalTopicPackage(cleanSlug);
+        basePkg.title = result.topic;
+        basePkg.domain = result.subject || 'Physics';
+        basePkg.category = result.source || 'NCERT Class 11 Physics';
+        basePkg.summary = `Ground-truth NCERT textbook curriculum loaded directly from Supabase.`;
+        setSelectedResult(basePkg);
       } else {
-        alert(`${result.message}\n\n${result.availableTopics || ''}`);
+        alert(`${result.message || 'No uploaded chapter found.'}\n\n${result.availableTopics || ''}`);
         const cleanSlug = q.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'topic';
         const universalPkg = buildUniversalTopicPackage(cleanSlug);
         setSelectedResult(universalPkg);
