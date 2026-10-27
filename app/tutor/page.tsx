@@ -5,9 +5,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { ClayCard } from '@/components/ui/ClayCard';
 import { ClayButton } from '@/components/ui/ClayButton';
 import { ClayBadge } from '@/components/ui/ClayBadge';
-import ReactMarkdown from 'react-markdown';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
+import { SocraticMessageRenderer } from '@/components/ui/SocraticMessageRenderer';
 import 'katex/dist/katex.min.css';
 
 interface Message {
@@ -306,12 +304,8 @@ export default function IndependentTutorPage() {
                     </div>
                   </div>
 
-                  {/* Message Content with Markdown & LaTeX */}
-                  <div className="text-sm font-medium leading-relaxed prose prose-sm max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                      {msg.text}
-                    </ReactMarkdown>
-                  </div>
+                  {/* Message Content with Markdown, GFM Tables & KaTeX */}
+                  <SocraticMessageRenderer content={msg.text} isUser={msg.sender === 'user'} />
                 </div>
               </div>
             ))}

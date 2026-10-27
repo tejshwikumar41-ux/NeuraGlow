@@ -12,6 +12,7 @@ import { ClayCard } from '@/components/ui/ClayCard';
 import { ClayButton } from '@/components/ui/ClayButton';
 import { ClayBadge } from '@/components/ui/ClayBadge';
 import { ChunkyBrainIcon } from '@/components/ui/ClayIcons';
+import { SocraticMessageRenderer } from '@/components/ui/SocraticMessageRenderer';
 
 export type EngineType =
   | 'notes'
@@ -1196,11 +1197,7 @@ export function SocraticTutorView({
                 <span>{msg.sender === 'user' ? 'You (Student)' : 'Socratic AI'}</span>
                 <span className="font-mono">{msg.timestamp}</span>
               </div>
-              <div className="text-sm font-medium leading-relaxed prose prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                  {msg.text}
-                </ReactMarkdown>
-              </div>
+              <SocraticMessageRenderer content={msg.text} isUser={msg.sender === 'user'} />
             </div>
           </div>
         ))}
