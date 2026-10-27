@@ -53,96 +53,99 @@ STRICT BEHAVIOR & SOCRATIC RULES:
 
     let aiReply = '';
 
-    // --- PROVIDER 1: GROQ (Ultra-fast Llama-3-70b) ---
+    // --- PROVIDER 1: GROQ (Ultra-fast LLMs) ---
     if (groqKey && !aiReply) {
-      try {
-        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${groqKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              ...(messages || []).map((m: any) => ({
-                role: m.sender === 'user' ? 'user' : 'assistant',
-                content: m.text
-              })),
-              { role: 'user', content: userInput }
-            ],
-            temperature: 0.6,
-            max_tokens: 600
-          })
-        });
+      const groqModels = ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'llama-3.1-8b-instant', 'llama3-70b-8192'];
+      for (const model of groqModels) {
+        try {
+          const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${groqKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                ...(messages || []).map((m: any) => ({
+                  role: m.sender === 'user' ? 'user' : 'assistant',
+                  content: m.text
+                })),
+                { role: 'user', content: userInput }
+              ],
+              temperature: 0.6,
+              max_tokens: 600
+            })
+          });
 
-        if (groqRes.ok) {
-          const data = await groqRes.json();
-          aiReply = data.choices?.[0]?.message?.content || '';
-        } else {
-          console.warn('Groq response status:', groqRes.status);
+          if (groqRes.ok) {
+            const data = await groqRes.json();
+            aiReply = data.choices?.[0]?.message?.content || '';
+            if (aiReply) break;
+          }
+        } catch (e) {
+          console.warn(`Groq (${model}) error:`, e);
         }
-      } catch (e) {
-        console.warn('Groq failed, attempting Gemini fallback:', e);
       }
     }
 
-    // --- PROVIDER 2: GEMINI 1.5 FLASH (Massive context window) ---
+    // --- PROVIDER 2: GEMINI (Massive context window) ---
     if (geminiKey && !aiReply) {
-      try {
-        // Build alternating turn structure for Gemini
-        const geminiContents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
-        const rawHistory = [
-          ...(messages || []).map((m: any) => ({
-            role: m.sender === 'user' ? 'user' : 'model',
-            text: m.text
-          })),
-          { role: 'user', text: userInput }
-        ];
+      const geminiModels = ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
+      for (const model of geminiModels) {
+        try {
+          // Build alternating turn structure for Gemini
+          const geminiContents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+          const rawHistory = [
+            ...(messages || []).map((m: any) => ({
+              role: m.sender === 'user' ? 'user' : 'model',
+              text: m.text
+            })),
+            { role: 'user', text: userInput }
+          ];
 
-        for (const item of rawHistory) {
-          if (!item.text || !item.text.trim()) continue;
-          if (geminiContents.length > 0 && geminiContents[geminiContents.length - 1].role === item.role) {
-            geminiContents[geminiContents.length - 1].parts[0].text += `\n${item.text}`;
-          } else {
-            geminiContents.push({
-              role: item.role,
-              parts: [{ text: item.text }]
+          for (const item of rawHistory) {
+            if (!item.text || !item.text.trim()) continue;
+            if (geminiContents.length > 0 && geminiContents[geminiContents.length - 1].role === item.role) {
+              geminiContents[geminiContents.length - 1].parts[0].text += `\n${item.text}`;
+            } else {
+              geminiContents.push({
+                role: item.role,
+                parts: [{ text: item.text }]
+              });
+            }
+          }
+
+          if (geminiContents.length > 0 && geminiContents[0].role === 'model') {
+            geminiContents.unshift({
+              role: 'user',
+              parts: [{ text: `Hello! Let's discuss ${sectionTitle}.` }]
             });
           }
-        }
 
-        // If first turn is model, prefix with a user hello to satisfy Gemini API constraints
-        if (geminiContents.length > 0 && geminiContents[0].role === 'model') {
-          geminiContents.unshift({
-            role: 'user',
-            parts: [{ text: `Hello! Let's discuss ${sectionTitle}.` }]
-          });
-        }
+          const geminiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                system_instruction: {
+                  parts: [{ text: systemPrompt }]
+                },
+                contents: geminiContents
+              })
+            }
+          );
 
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              system_instruction: {
-                parts: [{ text: systemPrompt }]
-              },
-              contents: geminiContents
-            })
+          if (geminiRes.ok) {
+            const data = await geminiRes.json();
+            aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            if (aiReply) break;
           }
-        );
-
-        if (geminiRes.ok) {
-          const data = await geminiRes.json();
-          aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        } else {
-          console.warn('Gemini response status:', geminiRes.status);
+        } catch (e) {
+          console.warn(`Gemini (${model}) error:`, e);
         }
-      } catch (e) {
-        console.warn('Gemini failed, attempting OpenAI fallback:', e);
       }
     }
 
