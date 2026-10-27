@@ -1,14 +1,28 @@
 import os
 import re
+import sys
 import json
 import requests
 import pdfplumber
 import psycopg2
 
-# ==============================================================================
-# PASTE YOUR SUPABASE URI LINK BETWEEN THE QUOTES BELOW ⬇️
-# ==============================================================================
-SUPABASE_DB_URI = "postgresql://postgres.xxxx:NeuraGlow07@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
+
+def get_db_uri():
+    if os.getenv("SUPABASE_DB_URI"):
+        return os.getenv("SUPABASE_DB_URI")
+    env_path = os.path.join(os.path.dirname(__file__), ".env.local")
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("SUPABASE_DB_URI="):
+                    return line.strip().split("=", 1)[1]
+    return "postgresql://postgres:Pflg782012006@db.iulnjxewpbwlazspvkmb.supabase.co:5432/postgres"
+
+SUPABASE_DB_URI = get_db_uri()
 
 
 def connect_to_db():
@@ -53,6 +67,21 @@ def parse_and_upload_pdf(pdf_filename, subject, topic, source_name, difficulty="
                     formulas.append(line_clean)
                 else:
                     full_markdown += f"{line_clean} "
+
+    # Also save parsed output locally for safety
+    parsed_output = {
+        "subject": subject,
+        "topic": topic,
+        "subtopic": "Complete Chapter",
+        "source": source_name,
+        "difficulty": difficulty,
+        "content_length": len(full_markdown),
+        "formulas_count": len(formulas),
+        "formulas": formulas
+    }
+    with open(f"{topic.lower()}_parsed.json", "w", encoding="utf-8") as f:
+        json.dump(parsed_output, f, indent=2, ensure_ascii=False)
+    print(f"💾 Parsed data saved locally to '{topic.lower()}_parsed.json' ({len(formulas)} formulas, {len(full_markdown)} characters).")
 
     conn = connect_to_db()
     if not conn:
