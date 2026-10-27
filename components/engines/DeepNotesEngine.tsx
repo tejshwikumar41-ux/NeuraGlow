@@ -20,7 +20,28 @@ export const DeepNotesEngine: React.FC<DeepNotesEngineProps> = ({ topic, onAskTu
 
   // Determine chapters based on selected depth mode
   const rawNotes = topic.notes || {};
-  const chapters = (rawNotes[depthMode]?.chapters) || rawNotes.chapters || [];
+  let chapters: any[] = [];
+  if (typeof rawNotes === 'string') {
+    chapters = [{
+      title: topic.title || 'Official Textbook Content',
+      estimatedReadTime: '45 mins',
+      wordCount: rawNotes.split(/\s+/).length,
+      content: rawNotes,
+      formulas: topic.formulas || []
+    }];
+  } else if (rawNotes[depthMode]?.chapters && rawNotes[depthMode].chapters.length > 0) {
+    chapters = rawNotes[depthMode].chapters;
+  } else if (rawNotes.chapters && rawNotes.chapters.length > 0) {
+    chapters = rawNotes.chapters;
+  } else if (rawNotes.content) {
+    chapters = [{
+      title: topic.title || 'Official Textbook Content',
+      estimatedReadTime: '45 mins',
+      wordCount: typeof rawNotes.content === 'string' ? rawNotes.content.split(/\s+/).length : 5000,
+      content: rawNotes.content,
+      formulas: topic.formulas || []
+    }];
+  }
 
   // Floating text selection state
   const [selectedText, setSelectedText] = useState('');

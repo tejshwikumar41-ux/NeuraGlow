@@ -50,7 +50,7 @@ function SearchComponent() {
     ? savedTopics.filter(t => t.title?.toLowerCase().includes(query.toLowerCase()) || t.domain?.toLowerCase().includes(query.toLowerCase()))
     : [];
 
-  const handleExecuteSearch = (searchTopic?: string) => {
+  const handleExecuteSearch = async (searchTopic?: string) => {
     const q = searchTopic || query;
     if (!q.trim()) return;
 
@@ -68,12 +68,98 @@ function SearchComponent() {
       }
     }
 
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ searchQuery: q }),
+      });
+
+      const result = await response.json();
+
+      if (result.found) {
+        const cleanSlug = (result.topic || q).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'topic';
+        const basePkg = buildUniversalTopicPackage(cleanSlug);
+
+        // 🎯 Replace the UI content with real Supabase PDF text!
+        basePkg.title = result.topic;
+        basePkg.domain = result.subject || 'Physics';
+        basePkg.category = result.source || 'NCERT Class 11 Physics';
+        basePkg.difficulty = result.difficulty || 'Intermediate';
+        basePkg.summary = `Ground-truth NCERT textbook curriculum loaded directly from Supabase: ${result.source || 'Official Textbook'}`;
+
+        if (result.content) {
+          const wordCount = result.content.split(/\s+/).length;
+          const chapterObj = {
+            id: 'ch-1',
+            title: result.topic,
+            readTime: `${Math.max(10, Math.round(wordCount / 200))} mins`,
+            wordCount: wordCount,
+            content: result.content,
+            formulas: result.formulas || [],
+            reflectionPrompt: 'Analyze the core textbook principles and apply them to solve foundational numerical problems.',
+          };
+
+          basePkg.notes = {
+            detailed: {
+              targetWordCount: `${wordCount.toLocaleString()} Words`,
+              readingTime: `${Math.max(10, Math.round(wordCount / 200))} mins`,
+              chapters: [chapterObj],
+            },
+            core: {
+              targetWordCount: `${Math.round(wordCount * 0.4).toLocaleString()} Words`,
+              readingTime: '20 mins',
+              chapters: [chapterObj],
+            },
+            crisp: {
+              targetWordCount: '2,500 Words',
+              readingTime: '8 mins',
+              chapters: [chapterObj],
+            },
+            summary: result.content.slice(0, 1500) + '...',
+          } as any;
+        }
+
+        // Save into localStorage library so /learn/[topicId] has immediate access to full PDF text
+        if (typeof window !== 'undefined') {
+          try {
+            const library = getCleanSavedLibrary();
+            const filtered = library.filter((item: any) => item.slug !== cleanSlug);
+            filtered.unshift({
+              id: basePkg.id,
+              slug: cleanSlug,
+              title: basePkg.title,
+              domain: basePkg.domain,
+              category: basePkg.category,
+              difficulty: basePkg.difficulty,
+              wordCountTarget: 'Full Textbook PDF',
+              questionCount: basePkg.questionBank.length,
+              flashcardCount: basePkg.flashcards.length,
+              savedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              offlineReady: true,
+              fullPackage: basePkg,
+            });
+            localStorage.setItem('neuraglow_saved_library', JSON.stringify(filtered));
+          } catch (e) {
+            console.warn('Could not cache textbook package', e);
+          }
+        }
+
+        setSelectedResult(basePkg);
+      } else {
+        alert(`${result.message}\n\n${result.availableTopics || ''}`);
+        const cleanSlug = q.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'topic';
+        const universalPkg = buildUniversalTopicPackage(cleanSlug);
+        setSelectedResult(universalPkg);
+      }
+    } catch (err) {
+      console.error('Search fetch error:', err);
       const cleanSlug = q.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'topic';
       const universalPkg = buildUniversalTopicPackage(cleanSlug);
       setSelectedResult(universalPkg);
+    } finally {
       setIsAnalyzing(false);
-    }, 700);
+    }
   };
 
   const handleClearRecents = () => {

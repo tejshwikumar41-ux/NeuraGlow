@@ -76,6 +76,60 @@ export default function TopicLearningHub({
     // Build fresh universal package tailored to this exact topic
     const freshPackage = buildUniversalTopicPackage(topicId);
     setTopic(freshPackage);
+
+    // Also attempt to query Supabase textbook chapters dynamically
+    const humanQuery = topicId.replace(/-/g, ' ');
+    fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ searchQuery: humanQuery }),
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        if (result && result.found && result.content) {
+          const enrichedPkg = buildUniversalTopicPackage(topicId);
+          enrichedPkg.title = result.topic;
+          enrichedPkg.domain = result.subject || 'Physics';
+          enrichedPkg.category = result.source || 'NCERT Class 11 Physics';
+          enrichedPkg.difficulty = result.difficulty || 'Intermediate';
+          enrichedPkg.summary = `Ground-truth NCERT textbook curriculum loaded directly from Supabase: ${result.source || 'Official Textbook'}`;
+
+          const wordCount = result.content.split(/\s+/).length;
+          const chapterObj = {
+            id: 'ch-1',
+            title: result.topic,
+            readTime: `${Math.max(10, Math.round(wordCount / 200))} mins`,
+            wordCount: wordCount,
+            content: result.content,
+            formulas: result.formulas || [],
+            reflectionPrompt: 'Analyze the core textbook principles and apply them to solve foundational numerical problems.',
+          };
+
+          enrichedPkg.notes = {
+            detailed: {
+              targetWordCount: `${wordCount.toLocaleString()} Words`,
+              readingTime: `${Math.max(10, Math.round(wordCount / 200))} mins`,
+              chapters: [chapterObj],
+            },
+            core: {
+              targetWordCount: `${Math.round(wordCount * 0.4).toLocaleString()} Words`,
+              readingTime: '20 mins',
+              chapters: [chapterObj],
+            },
+            crisp: {
+              targetWordCount: '2,500 Words',
+              readingTime: '8 mins',
+              chapters: [chapterObj],
+            },
+            summary: result.content.slice(0, 1500) + '...',
+          } as any;
+
+          setTopic(enrichedPkg);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load Supabase textbook for topicId:', err);
+      });
   }, [topicId]);
 
   // Engines Navigation Config
