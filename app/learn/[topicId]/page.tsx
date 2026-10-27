@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
@@ -194,7 +194,14 @@ export default function TopicLearningHub({
           />
         );
       case 'tutor':
-        return <SocraticView qa={currentSection.socratic_qa || []} sectionTitle={currentSection.section_title} />;
+        return (
+          <SocraticTutorView
+            sectionTitle={currentSection.section_title}
+            contentMarkdown={currentSection.content_markdown || ''}
+            socraticQa={currentSection.socratic_qa || []}
+            concepts={currentSection.concepts || []}
+          />
+        );
       default:
         return <NotesView section={currentSection} />;
     }
@@ -1046,90 +1053,261 @@ function SimulatorView({ formulas, allFormulas }: { formulas: any[]; allFormulas
 }
 
 // ─────────────────────────────────────────────
-// 9. SOCRATIC TUTOR VIEW (Depth 1 - 5 Dialogue)
+// 9. SOCRATIC TUTOR VIEW (Interactive AI Chat Assistant)
 // ─────────────────────────────────────────────
-function SocraticView({ qa, sectionTitle }: { qa: any[]; sectionTitle: string }) {
-  const [activeDepth, setActiveDepth] = useState(1);
+interface SocraticQA {
+  id: number;
+  depth_level: number;
+  question: string;
+  answer: string;
+  follow_up_hint: string;
+}
 
-  if (!qa || qa.length === 0) {
-    return (
-      <ClayCard padding="lg" className="text-center p-8 border-[3px] border-[var(--border-clay)]">
-        <p className="text-base font-bold text-[var(--muted-clay)]">
-          No Socratic dialogue pairs available for this section.
-        </p>
-      </ClayCard>
-    );
-  }
+interface Concept {
+  term: string;
+  definition: string;
+}
 
-  const currentQA = qa.filter((q) => q.depth_level === activeDepth);
+interface Message {
+  id: string;
+  sender: 'ai' | 'user';
+  text: string;
+  timestamp: string;
+  depth?: number;
+}
 
-  const depthNames = [
-    { level: 1, label: 'Depth 1: Recall' },
-    { level: 2, label: 'Depth 2: Comprehension' },
-    { level: 3, label: 'Depth 3: Application' },
-    { level: 4, label: 'Depth 4: Analysis' },
-    { level: 5, label: 'Depth 5: Synthesis' },
-  ];
+export function SocraticTutorView({ 
+  sectionTitle, 
+  contentMarkdown, 
+  socraticQa = [], 
+  concepts = [] 
+}: { 
+  sectionTitle: string; 
+  contentMarkdown: string; 
+  socraticQa: SocraticQA[]; 
+  concepts: Concept[]; 
+}) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [currentDepth, setCurrentDepth] = useState(1);
+  const [isTyping, setIsTyping] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom of chat
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
+
+  // Initial AI greeting and opening Socratic question
+  useEffect(() => {
+    const openingQuestion = socraticQa.find(q => q.depth_level === 1)?.question || 
+      (concepts.length > 0 ? `Can you explain what "${concepts[0].term}" means in your own words?` : `What is the most fundamental idea discussed in ${sectionTitle}?`);
+
+    const initialMsg: Message = {
+      id: 'init-1',
+      sender: 'ai',
+      text: `👋 **Greetings! I am your Socratic Tutor for ${sectionTitle}.**\n\nI won't just lecture you—I'm here to test and deepen your conceptual understanding through dialogue.\n\nLet's start at **Depth Level 1 (Recall)**:\n\n🤔 **${openingQuestion}**`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      depth: 1
+    };
+
+    setMessages([initialMsg]);
+    setCurrentDepth(1);
+  }, [sectionTitle, socraticQa, concepts]);
+
+  // Handle sending a response to the AI Tutor
+  const handleSend = async (customText?: string) => {
+    const textToSend = customText || input;
+    if (!textToSend.trim()) return;
+
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      sender: 'user',
+      text: textToSend,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    if (!customText) setInput('');
+    setIsTyping(true);
+
+    // Simulate Socratic AI processing response using textbook context
+    setTimeout(() => {
+      const lowerInput = textToSend.toLowerCase();
+      let aiReply = '';
+      let nextDepth = currentDepth;
+
+      // Match against concepts in textbook
+      const matchedConcept = concepts.find(c => 
+        lowerInput.includes(c.term.toLowerCase()) || (c.definition && c.definition.toLowerCase().split(' ').some(w => w.length > 4 && lowerInput.includes(w)))
+      );
+
+      // Socratic Dialogue State Machine
+      if (lowerInput.includes('hint') || lowerInput.includes('dont know') || lowerInput.includes("don't know") || lowerInput.includes('help')) {
+        const hint = socraticQa.find(q => q.depth_level === currentDepth)?.follow_up_hint || 
+          (concepts.length > 0 ? `Think about how ${concepts[0].term} relates to ${sectionTitle}.` : `Consider the core principles described in the chapter notes.`);
+        aiReply = `💡 **Socratic Hint:**\n${hint}\n\nGive it another try! What do you think?`;
+      } else if (lowerInput.includes('explain') || lowerInput.includes('what is') || lowerInput.includes('how does')) {
+        // User asked a direct question -> Answer using textbook data then ask a Socratic follow-up
+        const answerConcept = concepts.find(c => lowerInput.includes(c.term.toLowerCase()));
+        if (answerConcept) {
+          aiReply = `📖 **According to the textbook:**\n**${answerConcept.term}**: ${answerConcept.definition}\n\nNow, to test your understanding: *How would this concept change if we doubled the force or velocity involved?*`;
+        } else {
+          aiReply = `📖 **From the ${sectionTitle} text:**\n${(contentMarkdown || '').slice(0, 300).replace(/#/g, '')}...\n\nDoes this make sense? Can you explain how you would apply this in a real-world experiment?`;
+        }
+      } else {
+        // Evaluate user's answer to Socratic question
+        if (matchedConcept) {
+          aiReply = `🎯 **Excellent deduction!** You correctly identified key principles related to **${matchedConcept.term}**.\n\n`;
+        } else {
+          aiReply = `👍 **Good attempt!** You're exploring the right direction.\n\n`;
+        }
+
+        // Move to next depth level or cycle
+        nextDepth = currentDepth < 5 ? currentDepth + 1 : 1;
+        setCurrentDepth(nextDepth);
+
+        const nextQa = socraticQa.find(q => q.depth_level === nextDepth);
+        if (nextQa) {
+          const depthLabels: Record<number, string> = {
+            1: 'Recall', 2: 'Comprehension', 3: 'Application', 4: 'Analysis', 5: 'Synthesis'
+          };
+          aiReply += `Let's elevate to **Depth Level ${nextDepth} (${depthLabels[nextDepth]})**:\n\n🤔 **${nextQa.question}**`;
+        } else {
+          const depthConcept = concepts.length > 0 ? concepts[nextDepth % concepts.length] : null;
+          aiReply += `Here is a deeper question for you:\n\n🤔 **How does ${depthConcept?.term || sectionTitle} apply when opposing forces or friction are present?**`;
+        }
+      }
+
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'ai',
+        text: aiReply,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        depth: nextDepth
+      };
+
+      setMessages(prev => [...prev, aiMsg]);
+      setIsTyping(false);
+    }, 900);
+  };
 
   return (
-    <ClayCard padding="lg" className="space-y-6 border-[3px] border-[var(--border-clay)] shadow-[6px_6px_0px_var(--border-clay)]">
-      <div className="space-y-2 pb-4 border-b border-[var(--border-clay)]">
-        <ClayBadge variant="primary" size="sm">Socratic Method</ClayBadge>
-        <h2 className="text-2xl font-black text-[var(--text-clay)]">
-          💬 Guided Dialogue: {sectionTitle}
-        </h2>
-        <p className="text-xs font-bold text-[var(--muted-clay)]">
-          Progress from basic surface recall all the way up to advanced synthesis.
-        </p>
+    <div className="flex flex-col h-[650px] bg-[#FAF8F5] border-4 border-black rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+      
+      {/* Top Header Bar */}
+      <div className="bg-[#FF6B4A] border-b-4 border-black p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white border-2 border-black rounded-full flex items-center justify-center text-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            🤖
+          </div>
+          <div>
+            <h3 className="font-black text-white text-lg leading-tight uppercase tracking-wide">
+              Socratic AI Tutor
+            </h3>
+            <p className="text-xs font-bold text-black/80">
+              Interactive Guidance • {sectionTitle}
+            </p>
+          </div>
+        </div>
+
+        {/* Current Depth Badge */}
+        <div className="bg-black text-white px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border border-white">
+          Level {currentDepth}/5 Socratic Depth
+        </div>
       </div>
 
-      {/* Depth Level Tabs */}
-      <div className="flex flex-wrap items-center gap-2">
-        {depthNames.map((d) => (
-          <button
-            key={d.level}
-            onClick={() => setActiveDepth(d.level)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer border-[2px] transition-all ${
-              activeDepth === d.level
-                ? 'bg-[var(--primary-clay)] text-white border-[var(--border-clay)] shadow-[2px_2px_0px_var(--border-clay)]'
-                : 'bg-[var(--surface-clay)] text-[var(--text-clay)] border-[var(--border-clay)]/50 hover:border-[var(--border-clay)]'
-            }`}
-          >
-            {d.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Socratic Questions */}
-      <div className="space-y-4">
-        {currentQA.map((item: any, idx: number) => (
+      {/* Chat Conversation History Area */}
+      <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#F4F1EA]">
+        {messages.map((msg) => (
           <div
-            key={item.id || idx}
-            className="p-5 rounded-2xl border-[2px] border-[var(--border-clay)] bg-[var(--surface-clay)] shadow-[3px_3px_0px_var(--border-clay)] space-y-3"
+            key={msg.id}
+            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">🤔</span>
-              <h4 className="text-base font-black text-[var(--text-clay)] leading-snug">
-                {item.question}
-              </h4>
-            </div>
-
-            <details className="mt-2 text-xs">
-              <summary className="cursor-pointer font-bold text-[var(--primary-clay)] hover:underline select-none">
-                💬 Reveal Socratic Answer & Guidance
-              </summary>
-              <div className="mt-3 p-4 rounded-xl bg-[var(--bg-clay)] border border-[var(--border-clay)] space-y-2 text-sm">
-                <p className="text-[var(--text-clay)] font-bold">{item.answer}</p>
-                {item.follow_up_hint && (
-                  <p className="text-xs italic text-[var(--muted-clay)] border-t border-[var(--border-clay)] pt-2">
-                    💡 Follow-up Hint: {item.follow_up_hint}
-                  </p>
-                )}
+            <div
+              className={`max-w-[80%] p-4 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
+                msg.sender === 'user'
+                  ? 'bg-[#4D96FF] text-white rounded-br-none'
+                  : 'bg-white text-black rounded-bl-none'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-4 mb-1 border-b border-black/10 pb-1">
+                <span className="font-black text-xs uppercase tracking-wider opacity-80">
+                  {msg.sender === 'user' ? 'You (Student)' : 'Socratic AI'}
+                </span>
+                <span className="text-[10px] opacity-60 font-mono">{msg.timestamp}</span>
               </div>
-            </details>
+
+              <div className="text-sm font-medium leading-relaxed whitespace-pre-wrap">
+                {msg.text}
+              </div>
+            </div>
           </div>
         ))}
+
+        {/* Typing indicator */}
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="bg-white border-2 border-black p-3 rounded-2xl rounded-bl-none shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2">
+              <span className="font-bold text-xs">Socratic AI is analyzing your response</span>
+              <span className="animate-bounce font-black text-lg">.</span>
+              <span className="animate-bounce font-black text-lg delay-100">.</span>
+              <span className="animate-bounce font-black text-lg delay-200">.</span>
+            </div>
+          </div>
+        )}
+        <div ref={chatEndRef} />
       </div>
-    </ClayCard>
+
+      {/* Quick Action Suggestion Chips */}
+      <div className="bg-[#EFECE6] border-t-2 border-black p-2 flex gap-2 overflow-x-auto">
+        <button
+          onClick={() => handleSend("Give me a hint!")}
+          className="px-3 py-1 bg-white border-2 border-black rounded-lg text-xs font-bold whitespace-nowrap hover:bg-yellow-300 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+        >
+          💡 Need a hint
+        </button>
+        <button
+          onClick={() => handleSend("Can you ask me the next question?")}
+          className="px-3 py-1 bg-white border-2 border-black rounded-lg text-xs font-bold whitespace-nowrap hover:bg-green-300 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+        >
+          🚀 Next Socratic Question
+        </button>
+        <button
+          onClick={() => handleSend("Explain this in simpler terms")}
+          className="px-3 py-1 bg-white border-2 border-black rounded-lg text-xs font-bold whitespace-nowrap hover:bg-blue-300 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+        >
+          ❓ Explain simply
+        </button>
+      </div>
+
+      {/* Input Form Bar */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSend();
+        }}
+        className="bg-white border-t-4 border-black p-3 flex gap-3"
+      >
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type your answer or ask a question..."
+          className="flex-1 px-4 py-3 bg-[#F4F1EA] border-2 border-black rounded-xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-black shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)]"
+        />
+        <button
+          type="submit"
+          disabled={!input.trim()}
+          className="px-6 py-3 bg-[#FF6B4A] text-white border-2 border-black rounded-xl font-black text-sm uppercase tracking-wider hover:bg-[#ff552e] active:translate-y-0.5 disabled:opacity-50 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
+        >
+          Send
+        </button>
+      </form>
+    </div>
   );
 }
